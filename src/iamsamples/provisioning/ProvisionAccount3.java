@@ -20,6 +20,7 @@ import oracle.iam.platform.entitymgr.vo.SearchCriteria;
 import oracle.iam.platform.utils.vo.OIMType;
 import oracle.iam.provisioning.api.ApplicationInstanceService;
 import oracle.iam.provisioning.api.ProvisioningService;
+import oracle.iam.provisioning.vo.ApplicationInstance;
 import oracle.iam.request.vo.Beneficiary;
 import oracle.iam.request.vo.RequestBeneficiaryEntity;
 import oracle.iam.request.vo.RequestBeneficiaryEntityAttribute;
@@ -32,6 +33,7 @@ public class ProvisionAccount3 {
 	private static final String USER_LOGIN = "AA10127"; // User Login
 	private static final String RESOURCE_ATTR_NAME = "Objects.Name"; // Attribute Name for Name
 	private static final String RESOURCE_ATTR_KEY = "Objects.Key"; // Attribute Name for Key
+	private static final String APPLICATION_INSTANCE_NAME = "SecondOUDInstance"; // Attribute Name for Name
 
 	
 	public static void main(String[] args) throws Exception {
@@ -49,12 +51,26 @@ public class ProvisionAccount3 {
 		 * Need to get IT Resource Key
 		 */
 		HashMap <String, String> searchcriteria = new HashMap<String, String>();
-		searchcriteria.put("IT Resources.Name", "Cellphone");
+		searchcriteria.put("IT Resources.Name", APPLICATION_INSTANCE_NAME);
 
 		tcResultSet resultSet = tcITResourceIntf.findITResourceInstances(searchcriteria);
 		long itResourceKey = resultSet.getLongValue("IT Resources.Key");
 		System.out.println("IT Resource Key -> " + itResourceKey);
 
+		SearchCriteria criteriaAi = new SearchCriteria(ApplicationInstance.APPINST_NAME,
+	            "*", SearchCriteria.Operator.BEGINS_WITH);
+		
+		List<ApplicationInstance> aiLst = aiSvc.findApplicationInstance(criteriaAi, new HashMap<String, Object>());
+		
+		Long applicationInstanceKey = 0L;
+		for(ApplicationInstance ai : aiLst) {
+			if (ai.getApplicationInstanceName().equalsIgnoreCase(APPLICATION_INSTANCE_NAME)) {
+				applicationInstanceKey = ai.getApplicationInstanceKey();
+				System.out.println("ai name = " + ai.getApplicationInstanceName() + " instance Key " + ai.getApplicationInstanceKey());
+				break;
+			}
+        	
+        }
 
         // Find the user
         SearchCriteria criteria = new SearchCriteria("User Login",
@@ -87,7 +103,7 @@ public class ProvisionAccount3 {
 		/*
 		 * Need to get the Resource Key using the Resource Name
 		 */
-		searchMap.put(RESOURCE_ATTR_NAME, "Cellphone");
+		searchMap.put(RESOURCE_ATTR_NAME, "SecondOUDInstance");
 		resultSet2 = resourceService.findObjects(searchMap);
 		resKey = resultSet2.getLongValue(RESOURCE_ATTR_KEY);
 		resourceKey = Long.toString(resKey);
@@ -97,8 +113,8 @@ public class ProvisionAccount3 {
 
 		RequestBeneficiaryEntity requestEntity = new RequestBeneficiaryEntity();
 		requestEntity.setRequestEntityType(OIMType.ApplicationInstance);
-		requestEntity.setEntitySubType("EnterpriseDirectoryOUD");
-		requestEntity.setEntityKey("444");
+		requestEntity.setEntitySubType("SecondOUDInstance");
+		requestEntity.setEntityKey("" + applicationInstanceKey);
 		requestEntity.setOperation(RequestConstants.MODEL_PROVISION_APPLICATION_INSTANCE_OPERATION);
 
 		List<RequestBeneficiaryEntityAttribute> attrs = new ArrayList<RequestBeneficiaryEntityAttribute>();
@@ -108,12 +124,12 @@ public class ProvisionAccount3 {
 		//attr = new RequestBeneficiaryEntityAttribute("ITResource", 290,
 		//		RequestBeneficiaryEntityAttribute.TYPE.Integer);
 		attrs.add(attr);
-		//attr = new RequestBeneficiaryEntityAttribute("Account ID", "AA10127",
-		//		RequestBeneficiaryEntityAttribute.TYPE.String);
-		//attrs.add(attr);
-		//attr = new RequestBeneficiaryEntityAttribute("Password", "Oracle123",
-		//		RequestBeneficiaryEntityAttribute.TYPE.String);
-		//attrs.add(attr);
+		attr = new RequestBeneficiaryEntityAttribute("Email", USER_LOGIN + "@oracleads.com",
+				RequestBeneficiaryEntityAttribute.TYPE.String);
+		attrs.add(attr);
+		attr = new RequestBeneficiaryEntityAttribute("Password", "Oracle123",
+				RequestBeneficiaryEntityAttribute.TYPE.String);
+		attrs.add(attr);
 
 		requestEntity.setEntityData(attrs);
 
